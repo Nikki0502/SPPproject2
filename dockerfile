@@ -18,7 +18,3 @@ COPY . .
 
 # Default command (build and test)
 CMD ["make", "test"]
-
-#  docker build -t myallocator .
-#  docker run -it --rm -v "${PWD}:/app" myallocator /bin/bash
-#  docker run -it --rm -v "${PWD}:/app" myallocator
