@@ -1,5 +1,6 @@
 #include "strategies.h"
 
+
 struct block_meta *firstFit(size_t size,struct block_meta* free_list_head) {
     struct block_meta *current = free_list_head;
     while (current) {

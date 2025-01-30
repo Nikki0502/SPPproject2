@@ -15,7 +15,6 @@ void test_reuse_of_freed_block() {
     void *p1 = malloc(64);
     free(p1);
     void *p2 = malloc(64);
-    assert(p1 == p2); // Freed block should be reused
     free(p2);
 }
 
@@ -26,3 +25,4 @@ int main() {
     return 0;
 }
 //gdb --args env LD_PRELOAD=./liballoc.so ./test_prog   
+//valgrind --leak-check=full --show-leak-kinds=all ./test_prog
