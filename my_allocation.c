@@ -25,8 +25,6 @@ struct block_meta *find_free_block(size_t size) {
     //#elif STRATEGY == NEXT_FIT
         // Next Fit implementation
     #endif
-
-    return NULL;
 }
 
 struct block_meta *request_space(size_t size) {
@@ -38,11 +36,13 @@ struct block_meta *request_space(size_t size) {
 }
 
 void merge_blocks(struct block_meta *block) {
+    // Merge with next block
     struct block_meta *next = (struct block_meta*)((char*)block + block->size);
     if (next->free) {
         block->size += next->size;
         remove_from_free_list(next);
     }
+    // Merge with previous block
     struct block_meta *prev = (struct block_meta*)((char*)block - block->prev_size);
     if (prev->free) {
         prev->size += block->size;
@@ -59,15 +59,6 @@ void split_block(struct block_meta *block, size_t size) {
     new_block->free = 1;
     block->size = size;
     add_to_free_list(new_block);
-}
-
-void print_heap() {
-    struct block_meta *current = free_list_head;
-    printf("Free List:\n");
-    while (current) {
-        printf("  [%p] size=%zu, free=%d\n", (void*)current, current->size, current->free);
-        current = current->next_free;
-    }
 }
 
 void *malloc(size_t size) {
@@ -96,4 +87,3 @@ void free(void *ptr) {
     merge_blocks(block);
     add_to_free_list(block);
 }
-
