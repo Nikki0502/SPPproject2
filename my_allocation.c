@@ -25,8 +25,6 @@ struct block_meta *find_free_block(size_t size) {
     //#elif STRATEGY == NEXT_FIT
         // Next Fit implementation
     #endif
-
-    return NULL;
 }
 
 struct block_meta *request_space(size_t size) {
