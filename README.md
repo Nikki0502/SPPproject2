@@ -10,3 +10,4 @@ Automaticly runs tests with make file bc of dockerfile:
 
 docker run -it --rm -v "${PWD}:/app" myallocator
 
+oder einfach make test
