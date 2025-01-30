@@ -24,5 +24,3 @@ int main() {
     printf("All tests passed!\n");
     return 0;
 }
-//gdb --args env LD_PRELOAD=./liballoc.so ./test_prog   
-//valgrind --leak-check=full --show-leak-kinds=all ./test_prog
