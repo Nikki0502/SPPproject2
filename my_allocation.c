@@ -1,7 +1,7 @@
 #include "my_allocation.h"
 
-#define ALIGN_SIZE 8
-#define ALIGN(size) (((size) + (ALIGN_SIZE-1)) & ~(ALIGN_SIZE-1))
+static struct block_meta *free_list_head = NULL;
+//static struct block_meta *last_block = NULL; // for first fit later
 
 allocation_strategy current_strat = FIRST_FIT;
 
@@ -24,7 +24,7 @@ void remove_from_free_list(struct block_meta *block) {
 struct block_meta *find_free_block(size_t size) {
     switch(current_strat) {
         case FIRST_FIT:
-            return firstFit(size);
+            return firstFit(size,free_list_head);
         case BEST_FIT:
             return bestFit(size);
         case NEXT_FIT:
@@ -81,6 +81,7 @@ void print_heap() {
 */
 
 void *malloc(size_t size) {
+    LOG("malloc(%zu)\n", size);
     if (size == 0) return NULL;
     size_t aligned_size = ALIGN(size);
     size_t total_size = META_SIZE + aligned_size;
@@ -97,17 +98,21 @@ void *malloc(size_t size) {
         }
         */
     }
+    LOG("Allocated block at %p (size: %zu)\n", block + 1, block->size);
     return(block + 1);
 }
 
 void free(void *ptr) {
     if (!ptr) return;
     struct block_meta *block = (struct block_meta*)ptr - 1;
+    LOG("free(%p), block size: %zu\n", ptr, block->size);
     if(block->free == 1){
         // ist schon free TODO
+        return;
     }
     block->free = 1;
     //merge_blocks(block); TODO
     add_to_free_list(block);
+    LOG("Added block %p to free list\n", block);
 }
 
