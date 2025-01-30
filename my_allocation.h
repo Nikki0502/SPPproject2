@@ -10,7 +10,7 @@
 #define ALIGN_SIZE 8
 #define ALIGN(size) (((size) + (ALIGN_SIZE-1)) & ~(ALIGN_SIZE-1))
 
-#define META_SIZE sizeof(struct block_meta)
+#define META_SIZE sizeof(struct block_meta) //32 btw
 
 
 void add_to_free_list(struct block_meta *block);
