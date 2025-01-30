@@ -1,38 +1,22 @@
-# Compiler and flags
 CC = gcc
-CFLAGS = -Wall -Wextra -g -fPIC
-STRATEGIES = firstfit # bestfit nextfit
-TESTS = test_basic
+CFLAGS = -Wall -Wextra -fPIC -g
+LDFLAGS = -shared
 
-# Default target (build everything)
-all: libs tests
+.PHONY: all clean test
 
-# --- Shared Libraries for Strategies ---
-libs: $(foreach strat,$(STRATEGIES),libmyalloc_$(strat).so)
+all: liballoc.so test_prog
 
-libmyalloc_%.so: my_allocation.c strategies.c
-	$(CC) $(CFLAGS) -DSTRATEGY=$(shell echo $* | tr a-z A-Z) -shared $^ -o $@
+liballoc.so: my_allocation.c strategies.c
+	$(CC) $(CFLAGS) $^ $(LDFLAGS) -o $@
 
-# --- Test Executables ---
-tests: $(foreach test,$(TESTS),tests/$(test))
-
-# Compile test programs
-tests/%: tests/%.c
+test_prog: test.c
 	$(CC) $(CFLAGS) $< -o $@
 
-# --- Run Tests ---
-test: $(foreach strat,$(STRATEGIES),test_$(strat))
+test: test_first 
 
-test_%: libmyalloc_%.so tests/$(TESTS)
-	@echo "\n=== Testing $* strategy ==="
-	@for test in $(TESTS); do \
-		echo "\nRunning $$test:"; \
-		chmod +x tests/$$test; \
-		LD_PRELOAD=./libmyalloc_$*.so ./tests/$$test || exit 1; \
-	done
+test_first: liballoc.so test_prog
+	@echo "Testing first-fit strategy..."
+	@LD_PRELOAD=./liballoc.so ./test_prog
 
-# Cleanup
 clean:
-	rm -f *.so tests/$(TESTS)
-
-.PHONY: all libs tests test clean
+	rm -f *.so test_prog

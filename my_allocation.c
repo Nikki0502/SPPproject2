@@ -1,8 +1,9 @@
 #include "my_allocation.h"
 
-size_t align(size_t size) {
-    return (size + (ALIGNMENT - 1)) & ~(ALIGNMENT - 1);
-}
+#define ALIGN_SIZE 8
+#define ALIGN(size) (((size) + (ALIGN_SIZE-1)) & ~(ALIGN_SIZE-1))
+
+allocation_strategy current_strat = FIRST_FIT;
 
 void add_to_free_list(struct block_meta *block) {
     block->next_free = free_list_head;
@@ -15,26 +16,37 @@ void remove_from_free_list(struct block_meta *block) {
     if (block->prev_free) block->prev_free->next_free = block->next_free;
     else free_list_head = block->next_free;
     if (block->next_free) block->next_free->prev_free = block->prev_free;
+    block->next_free = NULL;
+    block->prev_free = NULL;
+    block->free = 0;
 }
 
 struct block_meta *find_free_block(size_t size) {
-    #if STRATEGY == FIRST_FIT
-        return firstFit(size);
-    //#elif STRATEGY == BEST_FIT
-        // Best Fit implementation
-    //#elif STRATEGY == NEXT_FIT
-        // Next Fit implementation
-    #endif
+    switch(current_strat) {
+        case FIRST_FIT:
+            return firstFit(size);
+        case BEST_FIT:
+            return bestFit(size);
+        case NEXT_FIT:
+            return nextFit(size);
+        default:
+            return NULL;
+    }
 }
-
+// total size
 struct block_meta *request_space(size_t size) {
     struct block_meta *block = sbrk(0);
-    if (sbrk(size) == (void*)-1) return NULL;
+    void *request = sbrk(size);
+    if (request == (void*)-1) return NULL;
+    
     block->size = size;
     block->free = 0;
+    block->next_free = NULL;
+    block->prev_free = NULL;
     return block;
 }
 
+/*
 void merge_blocks(struct block_meta *block) {
     struct block_meta *next = (struct block_meta*)((char*)block + block->size);
     if (next->free) {
@@ -58,7 +70,6 @@ void split_block(struct block_meta *block, size_t size) {
     block->size = size;
     add_to_free_list(new_block);
 }
-
 void print_heap() {
     struct block_meta *current = free_list_head;
     printf("Free List:\n");
@@ -67,31 +78,36 @@ void print_heap() {
         current = current->next_free;
     }
 }
+*/
 
 void *malloc(size_t size) {
     if (size == 0) return NULL;
-    size_t aligned_size = align(size);
-    size_t total_size = sizeof(struct block_meta) + aligned_size;
+    size_t aligned_size = ALIGN(size);
+    size_t total_size = META_SIZE + aligned_size;
 
     struct block_meta *block = find_free_block(total_size);
-    if (!block) {
+    if (!block) { // entweder erster block oder kein platz mehr
         block = request_space(total_size);
         if (!block) return NULL;
-    } else {
+    } else { // passenden block gefunden
         remove_from_free_list(block);
-        if (block->size - total_size >= sizeof(struct block_meta) + ALIGNMENT) {
+        /* TODO
+        if (block->size - total_size >= META_SIZE + ALIGN_SIZE) {
             split_block(block, total_size);
         }
+        */
     }
-    block->free = 0;
-    return (void*)(block + 1);
+    return(block + 1);
 }
 
 void free(void *ptr) {
     if (!ptr) return;
     struct block_meta *block = (struct block_meta*)ptr - 1;
+    if(block->free == 1){
+        // ist schon free TODO
+    }
     block->free = 1;
-    merge_blocks(block);
+    //merge_blocks(block); TODO
     add_to_free_list(block);
 }
 
