@@ -17,6 +17,6 @@ typedef enum {
     NEXT_FIT
 } allocation_strategy;
 
-struct block_meta* bestFit(size_t size);
+struct block_meta* bestFit(size_t size, struct block_meta* list_head);
 struct block_meta* firstFit(size_t size,struct block_meta* free_list_head);
 struct block_meta* nextFit(size_t size);

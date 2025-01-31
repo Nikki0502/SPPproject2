@@ -26,7 +26,7 @@ struct block_meta *find_free_block(size_t size) {
         case FIRST_FIT:
             return firstFit(size,list_head);
         case BEST_FIT:
-            return bestFit(size);
+            return bestFit(size,list_head);
         case NEXT_FIT:
             return nextFit(size);
         default:
@@ -72,9 +72,9 @@ void split_block(struct block_meta *block, size_t size) {
     new_block->size = block->size - size;
     new_block->free = 1;
     block->size = size;
-    new_block->next = block->next;
-    block->next = new_block;
-    new_block->prev = block;
+    new_block->prev = block->prev;
+    block->prev = new_block;
+    new_block->next = block;
     LOG("Splitt into block at %p (size: %zu) with user addr at %p\n", block, block->size,block +1);
     LOG("And new_block at %p (size: %zu)with user addr at %p\n", new_block , new_block->size, new_block+1);
 }
@@ -154,8 +154,11 @@ void *realloc(void *ptr, size_t size) {
     size_t new_aligned_size = ALIGN(size);
     size_t new_total_size = META_SIZE + new_aligned_size;
 
+    if (block->free) return NULL;
+
     // Check if current block can satisfy the request
     if (block->size >= new_total_size) {
+        LOG("shrinking block(%p, %zu)\n",ptr, size);
         // Check if we can split the block
         if (block->size - new_total_size >= META_SIZE + ALIGN_SIZE) {
             split_block(block, new_total_size);
@@ -163,13 +166,18 @@ void *realloc(void *ptr, size_t size) {
         return ptr;
     }
 
-    // Check if merging with next block is possible
-    struct block_meta *next = block->next;
-    if (next && next->free) {
-        size_t combined_size = block->size + next->size;
+    // Check if merging with prev block is possible
+    struct block_meta *prev = block->prev;
+    LOG("prev:%p\n",prev);
+    if(prev->free){
+        LOG("prev free\n");
+    }
+    if (prev && prev->free) {
+        size_t combined_size = block->size + prev->size;
         if (combined_size >= new_total_size) {
-            block->size += next->size;
-            remove_from_list(next);
+            LOG("merging block(%p, %zu) with prev(%p,%zu)\n",ptr, size,prev + 1,prev->size);
+            block->size += prev->size;
+            remove_from_list(prev);
             // Check if split is needed after merge
             if (block->size - new_total_size >= META_SIZE + ALIGN_SIZE) {
                 split_block(block, new_total_size);
@@ -179,16 +187,18 @@ void *realloc(void *ptr, size_t size) {
     }
 
     // Allocate new block and copy data
+    LOG("Trying to move the block \n");
     void *new_ptr = malloc(size);
     if (!new_ptr) {
-        struct block_meta *prev = block->prev;
+        struct block_meta *next = block->next;
         size_t combined_size = block->size;
 
         // Calculate total size after merging
-        if (prev && prev->free) combined_size += prev->size;
         if (next && next->free) combined_size += next->size;
+        if (prev && prev->free) combined_size += prev->size;
 
         if (combined_size >= new_total_size) {
+            LOG("merging block(%p, %zu) with prev(%p,%zu)\n and next(%p,%zu)",ptr, size,prev + 1,prev->size,next+1,next->size);
             // Merge previous (if free)
             if (prev && prev->free) {
                 prev->size += block->size;

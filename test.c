@@ -61,8 +61,134 @@ void test_zero_alloc() {
     printf("test_zero_alloc passed!\n");
 }
 
-int main() {
 
+void test_calloc_initialization() {
+    size_t nelem = 10;
+    size_t elsize = sizeof(int);
+    size_t total_size = nelem * elsize;
+
+    // Test normal allocation
+    int *arr = (int *)calloc(nelem, elsize);
+    assert(arr != NULL && "calloc failed to allocate memory");
+
+    // Check every byte in the user-visible memory is zero
+    unsigned char *byte_ptr = (unsigned char *)arr;
+    for (size_t i = 0; i < total_size; i++) {
+        assert(byte_ptr[i] == 0 && "calloc did not zero-initialize memory");
+    }
+
+    free(arr);
+
+    // Test edge case (large allocation)
+    nelem = 1024;
+    elsize = sizeof(char);
+    total_size = nelem * elsize;
+    char *large_arr = (char *)calloc(nelem, elsize);
+    assert(large_arr != NULL && "calloc failed for large allocation");
+
+    for (size_t i = 0; i < total_size; i++) {
+        assert(large_arr[i] == 0 && "calloc failed for large block");
+    }
+
+    free(large_arr);
+    printf("test_calloc_initialization passed!\n");
+}
+
+void test_realloc_basic() {
+    // Allocate initial block and write data
+    int *arr = (int *)malloc(4 * sizeof(int));
+    assert(arr != NULL && "Initial malloc failed");
+    for (int i = 0; i < 4; i++) arr[i] = i; // [0, 1, 2, 3]
+
+    int *arr2 = (int *)malloc(4 * sizeof(int));
+    assert(arr2 != NULL && "Initial malloc failed");
+
+    free(arr2);
+
+    // Expand the block
+    int *new_arr = (int *)realloc(arr, 8 * sizeof(int));
+    assert(new_arr != NULL && "Realloc failed to expand");
+    assert(new_arr == arr && "Block should have expanded in-place");
+    for (int i = 0; i < 4; i++) assert(new_arr[i] == i && "Data corrupted after expand");
+
+    // Shrink the block
+    new_arr = (int *)realloc(new_arr, 2 * sizeof(int));
+    assert(new_arr != NULL && "Realloc failed to shrink");
+    assert(new_arr == arr && "Block should stay in-place when shrinking");
+    assert(new_arr[0] == 0 && "Data corrupted after shrink");
+
+    free(new_arr);
+    printf("test_realloc_basic passed!\n");
+}
+
+void test_realloc_null_ptr() {
+    // realloc(NULL, size) should behave like malloc
+    char *ptr = (char *)realloc(NULL, 64);
+    assert(ptr != NULL && "realloc(NULL, size) failed");
+    free(ptr);
+    printf("test_realloc_null_ptr passed!\n");
+}
+
+void test_realloc_size_zero() {
+    void *ptr = malloc(32);
+    assert(ptr != NULL && "Initial malloc failed");
+    void *result = realloc(ptr, 0);
+    assert(result == NULL && "realloc(ptr, 0) should return NULL");
+    printf("test_realloc_size_zero passed!\n");
+}
+
+void test_realloc_merge_adjacent() {
+    // Allocate three blocks: A B C
+    void *A = malloc(16);
+    void *B = malloc(16);
+    assert(A && B && "Initial allocations failed");
+
+    free(B); // Free the middle block (B)
+    struct block_meta *block_A = (struct block_meta*)A - 1;
+
+    // Realloc A to 32 bytes (requires merging with B)
+    void *new_A = realloc(A, 32);
+    assert(new_A != NULL && "Realloc with merge failed");
+    assert(new_A == A && "Block should expand into adjacent free space");
+
+    // Verify merged size (A + B = 16 + 16 + metadata)
+    struct block_meta *merged_block = (struct block_meta*)new_A - 1;
+    assert(merged_block->size >= 32 + META_SIZE && "Merged block size incorrect");
+
+    free(new_A);
+    printf("test_realloc_merge_adjacent passed!\n");
+}
+
+void test_realloc_data_integrity() {
+    char *str = (char *)malloc(10);
+    assert(str != NULL && "Initial malloc failed");
+    strcpy(str, "hello");
+
+    // Realloc to larger size
+    char *new_str = (char *)realloc(str, 20);
+    assert(new_str != NULL && "Realloc failed");
+    assert(strcmp(new_str, "hello") == 0 && "Data corrupted after realloc");
+
+    // Realloc to smaller size (truncate)
+    new_str = (char *)realloc(new_str, 5);
+    assert(new_str != NULL && "Realloc shrink failed");
+    assert(strncmp(new_str, "hello", 5) == 0 && "Data corrupted after shrink");
+
+    free(new_str);
+    printf("test_realloc_data_integrity passed!\n");
+}
+
+void test_realloc_freed_pointer() {
+    void *ptr = malloc(16);
+    assert(ptr != NULL && "Initial malloc failed");
+    free(ptr);
+    void *result = realloc(ptr, 32);
+    assert(result == NULL && "realloc on freed pointer should return NULL");
+    printf("test_realloc_freed_pointer passed!\n");
+}
+
+int main() {
+    
     test_basic_allocation();
     test_reuse_of_freed_block();
     test_merging_of_freed_blocks();
@@ -70,7 +196,17 @@ int main() {
     test_double_free();
     test_zero_alloc();
 
+    test_calloc_initialization();
+
+    test_realloc_basic();
+    test_realloc_null_ptr();
+    test_realloc_size_zero();
+    test_realloc_merge_adjacent();
+    test_realloc_data_integrity();
+    test_realloc_freed_pointer();
+
     printf("All tests passed!\n");
+   
 
     return 0;
 }
