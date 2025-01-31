@@ -6,8 +6,8 @@
 struct block_meta {
     size_t size;
     int free; // 1 free 0 not 
-    struct block_meta *next_free;
-    struct block_meta *prev_free;
+    struct block_meta *next;
+    struct block_meta *prev;
 };
 
 typedef enum {
