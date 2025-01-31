@@ -22,3 +22,5 @@ void merge_blocks(struct block_meta *block);
 void print_heap();
 void *malloc(size_t size);
 void free(void *ptr);
+void *calloc(size_t nelem, size_t elsize);
+void *realloc(void *ptr, size_t size);

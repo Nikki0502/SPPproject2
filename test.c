@@ -50,8 +50,12 @@ void test_zero_alloc(){
 
 
 int main() {
+    test_basic_allocation();
+    test_reuse_of_freed_block();
+    test_merging_of_freed_blocks();
+    test_splitting_of_block();
+    test_double_free();
     test_zero_alloc();
-    
-  
+
     return 0;
 }

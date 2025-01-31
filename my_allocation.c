@@ -96,16 +96,15 @@ void *malloc(size_t size) {
     size_t total_size = META_SIZE + aligned_size;
 
     struct block_meta *block = find_free_block(total_size);
-    if (!block) { // entweder erster block oder kein platz mehr
+    if (!block) { 
         LOG("Requesting more heap\n");
         block = request_space(total_size);
-        // TODO errno setzen kein space mehr
+        // TODO errno setzen kein space mehr ENOMEN
         if (!block) return NULL;
         add_to_list(block);
-    } else { // passenden block gefunden
+    } else { 
         LOG("Found free block at %p (size: %zu) with user addr at %p\n", block, block->size,block +1);
         block->free = 0;
-        // groß genug um 2 bloecke zu machen
         if (block->size - total_size >= META_SIZE + ALIGN_SIZE) {
             split_block(block, total_size);
         }
@@ -119,7 +118,7 @@ void free(void *ptr) {
     struct block_meta *block = (struct block_meta*)ptr - 1;
     LOG("free(%p), block size: (%zu) and beginning at %p \n", ptr, block->size, block);
     if(block->free == 1){
-        // ist schon free TODO
+        // ist schon free TODO undefined behaivor idk
         return;
     }
     block->free = 1;
@@ -127,3 +126,108 @@ void free(void *ptr) {
     merge_blocks(block);
 }
 
+void *calloc(size_t nelem, size_t elsize) {
+    size_t size;
+    if (nelem == 0 || elsize == 0) {
+        return NULL;
+    }
+    size = nelem * elsize;
+    if (elsize != 0 && size / elsize != nelem) {
+        errno = ENOMEM; // int overflow
+        return NULL;
+    }
+    void *ptr = malloc(size);
+    if (ptr) {
+        struct block_meta *block = (struct block_meta*)ptr - 1;
+        size_t allocated_size = block->size - META_SIZE;
+        memset(ptr, 0, allocated_size);
+        LOG("Allocated block at %p (size: %zu) with user addr at %p\n", block, block->size,block +1);
+    }
+    return ptr;
+}
+
+void *realloc(void *ptr, size_t size) {
+    LOG("realloc(%p, %zu)\n", ptr, size);
+    if (!ptr) {
+        return malloc(size);
+    }
+    if (size == 0) {
+        free(ptr);
+        return NULL;
+    }
+
+    struct block_meta *block = (struct block_meta*)ptr - 1;
+    size_t new_aligned_size = ALIGN(size);
+    size_t new_total_size = META_SIZE + new_aligned_size;
+
+    // Check if current block can satisfy the request
+    if (block->size >= new_total_size) {
+        // Check if we can split the block
+        if (block->size - new_total_size >= META_SIZE + ALIGN_SIZE) {
+            split_block(block, new_total_size);
+        }
+        return ptr;
+    }
+
+    // Check if merging with next block is possible
+    struct block_meta *next = block->next;
+    if (next && next->free) {
+        size_t combined_size = block->size + next->size;
+        if (combined_size >= new_total_size) {
+            block->size += next->size;
+            remove_from_list(next);
+            // Check if split is needed after merge
+            if (block->size - new_total_size >= META_SIZE + ALIGN_SIZE) {
+                split_block(block, new_total_size);
+            }
+            return ptr;
+        }
+    }
+
+    // Allocate new block and copy data
+    void *new_ptr = malloc(size);
+    if (!new_ptr) {
+        struct block_meta *prev = block->prev;
+        size_t combined_size = block->size;
+
+        // Calculate total size after merging
+        if (prev && prev->free) combined_size += prev->size;
+        if (next && next->free) combined_size += next->size;
+
+        if (combined_size >= new_total_size) {
+            // Merge previous (if free)
+            if (prev && prev->free) {
+                prev->size += block->size;
+                remove_from_list(block);
+                block = prev; // Update block to merged block
+            }
+
+            // Merge next (if free)
+            if (next && next->free) {
+                block->size += next->size;
+                remove_from_list(next);
+            }
+
+            // Copy data to the start of the merged block
+            void *merged_user_ptr = block + 1;
+            memmove(merged_user_ptr, ptr, block->size - META_SIZE - (prev ? prev->size : 0));
+
+            // Mark as allocated and split if needed
+            block->free = 0;
+            if (block->size - new_total_size >= META_SIZE + ALIGN_SIZE) {
+                split_block(block, new_total_size);
+            }
+
+            return merged_user_ptr;
+        } else {
+            // No space even after merging
+            return NULL;
+        }
+    }
+    size_t old_user_size = block->size - META_SIZE;
+    size_t copy_size = (size < old_user_size) ? size : old_user_size;
+    memcpy(new_ptr, ptr, copy_size);
+    free(ptr);
+
+    return new_ptr;
+}
