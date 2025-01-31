@@ -3,7 +3,7 @@
 static struct block_meta *list_head = NULL;
 //static struct block_meta *last_block = NULL; // for first fit later
 
-allocation_strategy current_strat = FIRST_FIT;
+
 
 void add_to_list(struct block_meta *block) {
     block->next = list_head;

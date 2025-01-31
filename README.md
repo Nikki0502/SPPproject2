@@ -18,6 +18,4 @@ debugging mit gdb :
 
 gdb --args env LD_PRELOAD=./liballoc.so ./test_prog   
 
-testing mem leaks mit valgrind :
 
-valgrind --leak-check=full --show-leak-kinds=all ./test_prog

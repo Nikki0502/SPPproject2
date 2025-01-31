@@ -1,6 +1,7 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -fPIC -g #-DDEBUG
 LDFLAGS = -shared
+STRAT ?= FIRST_FIT
 
 .PHONY: all clean test
 
@@ -12,11 +13,10 @@ liballoc.so: my_allocation.c strategies.c
 test_prog: test.c
 	$(CC) $(CFLAGS) $< -o $@
 
-test: test_first 
-
-test_first: liballoc.so test_prog
-	@echo "Testing first-fit strategy..."
+test: liballoc.so test_prog
+	@echo "Testing Allocation..."
 	@LD_PRELOAD=./liballoc.so ./test_prog
+
 
 clean:
 	rm -f *.so test_prog

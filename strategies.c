@@ -16,12 +16,11 @@ struct block_meta* bestFit(size_t size, struct block_meta* list_head) {
 
     while (current != NULL) {
         if (current->free && current->size >= size) {
-            // Track the smallest adequate block
             if (best_block == NULL || current->size < best_block->size) {
                 best_block = current;
             }
         }
         current = current->next;
     }
-    return best_block; // Returns NULL if no block found
+    return best_block;
 }

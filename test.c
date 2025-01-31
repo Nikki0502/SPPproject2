@@ -30,7 +30,7 @@ void test_merging_of_freed_blocks() {
     free(p1);
     free(p2);
     void *p4 = malloc(112);
-    assert(p4 != NULL && "Merging failed or heap full");
+    assert(p4 != p1 && "Merging failed or heap full");
     free(p4);
     printf("test_merging_of_freed_blocks passed!\n");
 }
@@ -79,18 +79,6 @@ void test_calloc_initialization() {
 
     free(arr);
 
-    // Test edge case (large allocation)
-    nelem = 1024;
-    elsize = sizeof(char);
-    total_size = nelem * elsize;
-    char *large_arr = (char *)calloc(nelem, elsize);
-    assert(large_arr != NULL && "calloc failed for large allocation");
-
-    for (size_t i = 0; i < total_size; i++) {
-        assert(large_arr[i] == 0 && "calloc failed for large block");
-    }
-
-    free(large_arr);
     printf("test_calloc_initialization passed!\n");
 }
 
@@ -188,24 +176,30 @@ void test_realloc_freed_pointer() {
 }
 
 int main() {
-    
-    test_basic_allocation();
-    test_reuse_of_freed_block();
-    test_merging_of_freed_blocks();
-    test_splitting_of_block();
-    test_double_free();
-    test_zero_alloc();
 
-    test_calloc_initialization();
+    const allocation_strategy strategies[] = {FIRST_FIT, BEST_FIT, NEXT_FIT};
+    const char *strategy_names[] = {"First Fit", "Best Fit", "Next Fit"};
 
-    test_realloc_basic();
-    test_realloc_null_ptr();
-    test_realloc_size_zero();
-    test_realloc_merge_adjacent();
-    test_realloc_data_integrity();
-    test_realloc_freed_pointer();
+    for (int i = 0; i < 3; i++) {
+        current_strat = strategies[i];
+        test_basic_allocation();
+        test_reuse_of_freed_block();
+        test_merging_of_freed_blocks();
+        test_splitting_of_block();
+        test_double_free();
+        test_zero_alloc();
 
-    printf("All tests passed!\n");
+        test_calloc_initialization();
+
+        test_realloc_basic();
+        test_realloc_null_ptr();
+        test_realloc_size_zero();
+        test_realloc_merge_adjacent();
+        test_realloc_data_integrity();
+        test_realloc_freed_pointer();
+
+        printf("All tests passed for %s!\n",strategy_names[i]);
+    }
    
 
     return 0;

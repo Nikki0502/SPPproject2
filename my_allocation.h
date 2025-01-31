@@ -7,6 +7,8 @@
 #define LOG(...)
 #endif
 
+static allocation_strategy current_strat = FIRST_FIT;
+
 #define ALIGN_SIZE 8
 #define ALIGN(size) (((size) + (ALIGN_SIZE-1)) & ~(ALIGN_SIZE-1))
 
