@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -fPIC -g -DDEBUG
+CFLAGS = -Wall -Wextra -fPIC -g #-DDEBUG
 LDFLAGS = -shared
 
 .PHONY: all clean test

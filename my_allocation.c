@@ -90,7 +90,6 @@ void print_heap() {
 
 void *malloc(size_t size) {
     LOG("malloc(%zu)\n", size);
-    // TODO errno setzen size 0
     if (size == 0) return NULL;
     size_t aligned_size = ALIGN(size);
     size_t total_size = META_SIZE + aligned_size;
@@ -99,8 +98,10 @@ void *malloc(size_t size) {
     if (!block) { 
         LOG("Requesting more heap\n");
         block = request_space(total_size);
-        // TODO errno setzen kein space mehr ENOMEN
-        if (!block) return NULL;
+        if (!block){
+            errno = ENOMEM; // not enough mem
+            return NULL;
+        }
         add_to_list(block);
     } else { 
         LOG("Found free block at %p (size: %zu) with user addr at %p\n", block, block->size,block +1);
@@ -117,10 +118,7 @@ void free(void *ptr) {
     if (!ptr) return;
     struct block_meta *block = (struct block_meta*)ptr - 1;
     LOG("free(%p), block size: (%zu) and beginning at %p \n", ptr, block->size, block);
-    if(block->free == 1){
-        // ist schon free TODO undefined behaivor idk
-        return;
-    }
+    if(block->free == 1) return;
     block->free = 1;
     LOG("Freed block %p  with user addr at %p\n" ,block, block + 1);
     merge_blocks(block);
@@ -128,9 +126,7 @@ void free(void *ptr) {
 
 void *calloc(size_t nelem, size_t elsize) {
     size_t size;
-    if (nelem == 0 || elsize == 0) {
-        return NULL;
-    }
+    if (nelem == 0 || elsize == 0) return NULL;
     size = nelem * elsize;
     if (elsize != 0 && size / elsize != nelem) {
         errno = ENOMEM; // int overflow
@@ -148,9 +144,7 @@ void *calloc(size_t nelem, size_t elsize) {
 
 void *realloc(void *ptr, size_t size) {
     LOG("realloc(%p, %zu)\n", ptr, size);
-    if (!ptr) {
-        return malloc(size);
-    }
+    if (!ptr) return malloc(size);
     if (size == 0) {
         free(ptr);
         return NULL;
