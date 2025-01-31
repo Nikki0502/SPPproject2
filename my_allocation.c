@@ -176,10 +176,6 @@ void *realloc(void *ptr, size_t size) {
 
     // Check if merging with prev block is possible
     struct block_meta *prev = block->prev;
-    LOG("prev:%p\n",prev);
-    if(prev->free){
-        LOG("prev free\n");
-    }
     if (prev && prev->free) {
         size_t combined_size = block->size + prev->size;
         if (combined_size >= new_total_size) {
