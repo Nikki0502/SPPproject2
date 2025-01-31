@@ -1,9 +1,14 @@
 #include "my_allocation.h"
 
 static struct block_meta *list_head = NULL;
-//static struct block_meta *last_block = NULL; // for first fit later
+static struct block_meta *last_block = NULL; 
 
-
+allocation_strategy current_strat = 
+#ifdef STRATEGY
+    (allocation_strategy)STRATEGY;  // Cast from numeric define
+#else
+    FIRST_FIT; // Default strategy
+#endif
 
 void add_to_list(struct block_meta *block) {
     block->next = list_head;
@@ -28,7 +33,7 @@ struct block_meta *find_free_block(size_t size) {
         case BEST_FIT:
             return bestFit(size,list_head);
         case NEXT_FIT:
-            return nextFit(size);
+            return nextFit(size,list_head,last_block);
         default:
             return NULL;
     }
@@ -51,18 +56,18 @@ void merge_blocks(struct block_meta *block) {
     struct block_meta *next = block->next;
     if(next){
         if (next->free) {
-            LOG("Merging with free block behind at %p (size: %zu) with user addr at %p\n", next, next->size,next+1);
-            block->size += next->size;
-            remove_from_list(next);
+            LOG("Merging with free block before at %p (size: %zu) with user addr at %p\n", next, next->size,next+1);
+            next->size += block->size;
+            remove_from_list(block);
+            block = next;
         }
     }
     struct block_meta *prev = block->prev;
     if(prev){
         if (prev->free) {
-            LOG("Merging with free block before at %p (size: %zu) with user addr at %p\n", prev, prev->size,prev+1);
-            prev->size += block->size;
-            remove_from_list(block);
-            block = prev;
+            LOG("Merging with free block behind at %p (size: %zu) with user addr at %p\n", prev, prev->size,prev+1);
+            block->size += prev->size;
+            remove_from_list(prev);
         }
     }
 }
@@ -73,6 +78,9 @@ void split_block(struct block_meta *block, size_t size) {
     new_block->free = 1;
     block->size = size;
     new_block->prev = block->prev;
+    if (new_block->prev){
+        new_block->prev->next = new_block;
+    }
     block->prev = new_block;
     new_block->next = block;
     LOG("Splitt into block at %p (size: %zu) with user addr at %p\n", block, block->size,block +1);

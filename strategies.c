@@ -24,3 +24,22 @@ struct block_meta* bestFit(size_t size, struct block_meta* list_head) {
     }
     return best_block;
 }
+
+struct block_meta *nextFit(size_t size, struct block_meta *list_head, struct block_meta *last_block) {
+    struct block_meta *current = last_block ? last_block : list_head;
+    struct block_meta *start = current;
+
+    if (!current) return NULL;
+
+    while (current != start) {
+        if (current->free && current->size >= size) {
+            last_block = current->next; // Update for next search
+            return current;
+        }
+        current = current->next;
+        // Wrap around to the start of the list
+        if (!current) current = list_head;
+    } 
+
+    return NULL; // No suitable block found
+}

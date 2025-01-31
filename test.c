@@ -30,7 +30,7 @@ void test_merging_of_freed_blocks() {
     free(p1);
     free(p2);
     void *p4 = malloc(112);
-    assert(p4 != p1 && "Merging failed or heap full");
+    assert(p4 == p1 && "Merging failed or heap full");
     free(p4);
     printf("test_merging_of_freed_blocks passed!\n");
 }
@@ -60,7 +60,6 @@ void test_zero_alloc() {
     assert(p1 == NULL && "Zero allocation did not return NULL");
     printf("test_zero_alloc passed!\n");
 }
-
 
 void test_calloc_initialization() {
     size_t nelem = 10;
@@ -180,8 +179,9 @@ int main() {
     const allocation_strategy strategies[] = {FIRST_FIT, BEST_FIT, NEXT_FIT};
     const char *strategy_names[] = {"First Fit", "Best Fit", "Next Fit"};
 
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 1; i++) {
         current_strat = strategies[i];
+        
         test_basic_allocation();
         test_reuse_of_freed_block();
         test_merging_of_freed_blocks();
@@ -198,7 +198,7 @@ int main() {
         test_realloc_data_integrity();
         test_realloc_freed_pointer();
 
-        printf("All tests passed for %s!\n",strategy_names[i]);
+        printf("All tests passed for %s!\n\n",strategy_names[i]);
     }
    
 

@@ -12,11 +12,11 @@ struct block_meta {
 };
 
 typedef enum {
-    FIRST_FIT,
-    BEST_FIT,
-    NEXT_FIT
+    FIRST_FIT = 0,
+    BEST_FIT = 1,
+    NEXT_FIT = 2
 } allocation_strategy;
 
 struct block_meta* bestFit(size_t size, struct block_meta* list_head);
-struct block_meta* firstFit(size_t size,struct block_meta* free_list_head);
-struct block_meta* nextFit(size_t size);
+struct block_meta* firstFit(size_t size,struct block_meta* list_head);
+struct block_meta* nextFit(size_t size,struct block_meta* list_head,struct block_meta *last_block);
