@@ -1,6 +1,6 @@
 #include "strategies.h"
 
-
+// start list head go throug list
 struct block_meta *firstFit(size_t size,struct block_meta* list_head) {
     struct block_meta *current = list_head;
     while (current) {
@@ -9,7 +9,7 @@ struct block_meta *firstFit(size_t size,struct block_meta* list_head) {
     }
     return NULL;
 }
-
+// start list head go through and keep smallest fitting block in mind
 struct block_meta* bestFit(size_t size, struct block_meta* list_head) {
     struct block_meta *best_block = NULL;
     struct block_meta *current = list_head;
@@ -24,7 +24,7 @@ struct block_meta* bestFit(size_t size, struct block_meta* list_head) {
     }
     return best_block;
 }
-
+// start at last block and loop trough list till there again
 struct block_meta *nextFit(size_t size, struct block_meta *list_head, struct block_meta *last_block) {
     if (list_head == NULL) {
         return NULL;
@@ -32,29 +32,30 @@ struct block_meta *nextFit(size_t size, struct block_meta *list_head, struct blo
 
     struct block_meta *current = NULL;
 
-    // Determine the starting block
+    // det strarting block
     if (last_block != NULL) {
         current = last_block->prev;
     } else {
         current = list_head;
     }
 
-    // Wrap around to the beginning if current is NULL
+    // wrap around if necc
     if (current == NULL) {
         current = list_head;
     }
 
     struct block_meta *start = current;
 
+    // do while so atleast once 
     do {
         if (current->free && current->size >= size) {
             return current;
         }
         current = current->prev;
         if (current == NULL) {
-            current = list_head; // Wrap around
+            current = list_head; // wrap around
         }
     }while (current != start);
 
-    return NULL; // No suitable block found
+    return NULL; 
 }

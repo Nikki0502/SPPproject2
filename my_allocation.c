@@ -5,9 +5,9 @@ static struct block_meta *last_block = NULL;
 
 allocation_strategy current_strat = 
 #ifdef STRATEGY
-    (allocation_strategy)STRATEGY;  // Cast from numeric define
+    (allocation_strategy)STRATEGY;  
 #else
-    FIRST_FIT; // Default strategy
+    FIRST_FIT; 
 #endif
 
 void add_to_list(struct block_meta *block) {
@@ -38,7 +38,7 @@ struct block_meta *find_free_block(size_t size) {
             return NULL;
     }
 }
-// total size
+
 struct block_meta *request_space(size_t size) {
     struct block_meta *block = sbrk(0);
     void *request = sbrk(size);
@@ -53,8 +53,8 @@ struct block_meta *request_space(size_t size) {
 
 
 void merge_blocks(struct block_meta *block) {
-    print_heap();
     struct block_meta *next = block->next;
+    // block behind
     if(next){
         if (next->free) {
             LOG("Merging with free block before at %p (size: %zu) with user addr at %p\n", next, next->size,next+1);
@@ -67,6 +67,7 @@ void merge_blocks(struct block_meta *block) {
         }
     }
     struct block_meta *prev = block->prev;
+    //block before
     if(prev){
         if (prev->free) {
             LOG("Merging with free block behind at %p (size: %zu) with user addr at %p\n", prev, prev->size,prev+1);
@@ -77,11 +78,9 @@ void merge_blocks(struct block_meta *block) {
             }
         }
     }
-    print_heap();
 }
 
 void split_block(struct block_meta *block, size_t size) {
-    print_heap();
     struct block_meta *new_block = (struct block_meta*)((char*)block + size);
     new_block->size = block->size - size;
     new_block->free = 1;
@@ -94,7 +93,6 @@ void split_block(struct block_meta *block, size_t size) {
     new_block->next = block;
     LOG("Splitt into block at %p (size: %zu) with user addr at %p\n", block, block->size,block +1);
     LOG("And new_block at %p (size: %zu)with user addr at %p\n", new_block , new_block->size, new_block+1);
-    print_heap();
 }
 
 void print_heap() {
@@ -113,6 +111,7 @@ void *malloc(size_t size) {
     size_t total_size = META_SIZE + aligned_size;
 
     struct block_meta *block = find_free_block(total_size);
+    // no block available
     if (!block) { 
         LOG("Requesting more heap\n");
         block = request_space(total_size);
@@ -121,7 +120,7 @@ void *malloc(size_t size) {
             return NULL;
         }
         add_to_list(block);
-    } else { 
+    } else { // foudn available block
         LOG("Found free block at %p (size: %zu) with user addr at %p\n", block, block->size,block +1);
         block->free = 0;
         if (block->size - total_size >= META_SIZE + ALIGN_SIZE) {
@@ -154,6 +153,7 @@ void *calloc(size_t nelem, size_t elsize) {
         return NULL;
     }
     void *ptr = malloc(size);
+    // zero out data
     if (ptr) {
         struct block_meta *block = (struct block_meta*)ptr - 1;
         size_t allocated_size = block->size - META_SIZE;
@@ -177,17 +177,16 @@ void *realloc(void *ptr, size_t size) {
 
     if (block->free) return NULL;
 
-    // Check if current block can satisfy the request
+    // check if shrinking
     if (block->size >= new_total_size) {
         LOG("shrinking block(%p, %zu)\n",ptr, size);
-        // Check if we can split the block
         if (block->size - new_total_size >= META_SIZE + ALIGN_SIZE) {
             split_block(block, new_total_size);
         }
         return ptr;
     }
 
-    // Check if merging with prev block is possible
+    // check if merging ahead is sufficient
     struct block_meta *prev = block->prev;
     if (prev && prev->free) {
         size_t combined_size = block->size + prev->size;
@@ -195,7 +194,6 @@ void *realloc(void *ptr, size_t size) {
             LOG("merging block(%p, %zu) with prev(%p,%zu)\n",ptr, size,prev + 1,prev->size);
             block->size += prev->size;
             remove_from_list(prev);
-            // Check if split is needed after merge
             if (block->size - new_total_size >= META_SIZE + ALIGN_SIZE) {
                 split_block(block, new_total_size);
             }
@@ -203,37 +201,30 @@ void *realloc(void *ptr, size_t size) {
         }
     }
 
-    // Allocate new block and copy data
+    // allocate new block
     LOG("Trying to move the block \n");
     void *new_ptr = malloc(size);
     if (!new_ptr) {
+        // coudnt so try last possibl. of merging with block ahead and before
         struct block_meta *next = block->next;
         size_t combined_size = block->size;
 
-        // Calculate total size after merging
         if (next && next->free) combined_size += next->size;
         if (prev && prev->free) combined_size += prev->size;
 
         if (combined_size >= new_total_size) {
             LOG("merging block(%p, %zu) with prev(%p,%zu)\n and next(%p,%zu)",ptr, size,prev + 1,prev->size,next+1,next->size);
-            // Merge previous (if free)
             if (prev && prev->free) {
                 prev->size += block->size;
                 remove_from_list(block);
-                block = prev; // Update block to merged block
+                block = prev; 
             }
-
-            // Merge next (if free)
             if (next && next->free) {
                 block->size += next->size;
                 remove_from_list(next);
             }
-
-            // Copy data to the start of the merged block
             void *merged_user_ptr = block + 1;
             memmove(merged_user_ptr, ptr, block->size - META_SIZE - (prev ? prev->size : 0));
-
-            // Mark as allocated and split if needed
             block->free = 0;
             if (block->size - new_total_size >= META_SIZE + ALIGN_SIZE) {
                 split_block(block, new_total_size);
@@ -241,10 +232,11 @@ void *realloc(void *ptr, size_t size) {
 
             return merged_user_ptr;
         } else {
-            // No space even after merging
+            // no space even after merging
             return NULL;
         }
     }
+    // copy into new block
     size_t old_user_size = block->size - META_SIZE;
     size_t copy_size = (size < old_user_size) ? size : old_user_size;
     memcpy(new_ptr, ptr, copy_size);

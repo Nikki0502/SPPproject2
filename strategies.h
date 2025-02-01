@@ -4,6 +4,9 @@
 #include <string.h>
 #include <errno.h>
 
+// the list goes into the opposite direction than the heap
+// aka the list head is always the block furthest(biggest addr) in the heap
+// and the block at the end of the list is the first in the heap(smallest addr)
 struct block_meta {
     size_t size;
     int free; // 1 free 0 not 
