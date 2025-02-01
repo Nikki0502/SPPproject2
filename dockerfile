@@ -17,4 +17,4 @@ WORKDIR /app
 COPY . .
 
 # Default command (build and test)
-CMD ["make", "test"]
+CMD ["make", "tests"]
