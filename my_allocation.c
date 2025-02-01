@@ -53,12 +53,16 @@ struct block_meta *request_space(size_t size) {
 
 
 void merge_blocks(struct block_meta *block) {
+    print_heap();
     struct block_meta *next = block->next;
     if(next){
         if (next->free) {
             LOG("Merging with free block before at %p (size: %zu) with user addr at %p\n", next, next->size,next+1);
             next->size += block->size;
             remove_from_list(block);
+            if (current_strat == NEXT_FIT && last_block==block) {
+                last_block = next;
+            }
             block = next;
         }
     }
@@ -68,11 +72,16 @@ void merge_blocks(struct block_meta *block) {
             LOG("Merging with free block behind at %p (size: %zu) with user addr at %p\n", prev, prev->size,prev+1);
             block->size += prev->size;
             remove_from_list(prev);
+            if (current_strat == NEXT_FIT && last_block == prev) {
+                last_block = block;
+            }
         }
     }
+    print_heap();
 }
 
 void split_block(struct block_meta *block, size_t size) {
+    print_heap();
     struct block_meta *new_block = (struct block_meta*)((char*)block + size);
     new_block->size = block->size - size;
     new_block->free = 1;
@@ -85,6 +94,7 @@ void split_block(struct block_meta *block, size_t size) {
     new_block->next = block;
     LOG("Splitt into block at %p (size: %zu) with user addr at %p\n", block, block->size,block +1);
     LOG("And new_block at %p (size: %zu)with user addr at %p\n", new_block , new_block->size, new_block+1);
+    print_heap();
 }
 
 void print_heap() {
@@ -117,6 +127,9 @@ void *malloc(size_t size) {
         if (block->size - total_size >= META_SIZE + ALIGN_SIZE) {
             split_block(block, total_size);
         }
+    }
+    if (current_strat == NEXT_FIT) {
+        last_block = block;
     }
     LOG("Allocated block at %p (size: %zu) with user addr at %p\n", block, block->size,block +1);
     return(block + 1);
