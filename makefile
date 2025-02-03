@@ -4,7 +4,7 @@ LDFLAGS = -shared
 TEST_DIR = tests
 TESTS = $(wildcard $(TEST_DIR)/test_*.c)
 TEST_BINS = $(TESTS:.c=.bin)
-STRATEGY = FIRST_FIT # BEST_FIT # NEXT_FIT # FIRST_FIT
+STRATEGY = NEXT_FIT # BEST_FIT # NEXT_FIT # FIRST_FIT
 
 .PHONY: all clean test
 

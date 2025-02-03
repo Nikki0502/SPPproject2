@@ -34,7 +34,7 @@ struct block_meta *nextFit(size_t size, struct block_meta *list_head, struct blo
 
     // det strarting block
     if (last_block != NULL) {
-        current = last_block->prev;
+        current = last_block->next;
     } else {
         current = list_head;
     }
@@ -51,7 +51,7 @@ struct block_meta *nextFit(size_t size, struct block_meta *list_head, struct blo
         if (current->free && current->size >= size) {
             return current;
         }
-        current = current->prev;
+        current = current->next;
         if (current == NULL) {
             current = list_head; // wrap around
         }
