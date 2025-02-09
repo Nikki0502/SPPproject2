@@ -2,7 +2,6 @@
 #include <assert.h>
 
 void test_realloc_null_ptr() {
-    // realloc(NULL, size) should behave like malloc
     char *ptr = (char *)realloc(NULL, 64);
     assert(ptr != NULL && "realloc(NULL, size) failed");
     free(ptr);

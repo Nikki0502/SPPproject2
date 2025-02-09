@@ -5,7 +5,7 @@ void test_double_free() {
     void *p1 = malloc(16);
     assert(p1 != NULL && "Allocation failed for p1");
     free(p1);
-    free(p1); // Should handle gracefully (no crash)
+    free(p1);
     printf("test_double_free passed!\n");
 }
 

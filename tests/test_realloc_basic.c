@@ -2,7 +2,6 @@
 #include <assert.h>
 
 void test_realloc_basic() {
-    // Allocate initial block and write data
     int *arr = (int *)malloc(4 * sizeof(int));
     assert(arr != NULL && "Initial malloc failed");
     for (int i = 0; i < 4; i++) arr[i] = i; // [0, 1, 2, 3]
@@ -12,13 +11,11 @@ void test_realloc_basic() {
 
     free(arr2);
 
-    // Expand the block
     int *new_arr = (int *)realloc(arr, 8 * sizeof(int));
     assert(new_arr != NULL && "Realloc failed to expand");
     assert(new_arr == arr && "Block should have expanded in-place");
     for (int i = 0; i < 4; i++) assert(new_arr[i] == i && "Data corrupted after expand");
 
-    // Shrink the block
     new_arr = (int *)realloc(new_arr, 2 * sizeof(int));
     assert(new_arr != NULL && "Realloc failed to shrink");
     assert(new_arr == arr && "Block should stay in-place when shrinking");

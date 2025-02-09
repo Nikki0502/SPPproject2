@@ -16,6 +16,10 @@ struct block_meta* bestFit(size_t size, struct block_meta* list_head) {
 
     while (current != NULL) {
         if (current->free && current->size >= size) {
+            if(current->size == size){
+                best_block = current;
+                return best_block;
+            }
             if (best_block == NULL || current->size < best_block->size) {
                 best_block = current;
             }
